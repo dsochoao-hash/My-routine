@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#1D9E75">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="My Routine">
+<meta name="description" content="Daily planner with Notion sync, water and active break reminders.">
+<title>My Routine</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --teal:#1D9E75;--teal-light:#E1F5EE;--teal-dark:#085041;
+    --amber:#BA7517;--amber-light:#FAEEDA;
+    --coral:#D85A30;--coral-light:#FAECE7;
+    --purple:#7F77DD;--purple-light:#EEEDFE;
+    --bg:#0f0f0f;--surface1:#1a1a1a;--surface2:#242424;
+    --border:rgba(255,255,255,0.09);--border-strong:rgba(255,255,255,0.15);
+    --text:#f0f0f0;--text-sec:#9a9a9a;--text-muted:#5a5a5a;
+    --radius:10px
+  }
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+  .app{max-width:430px;margin:0 auto;padding:0 0 84px;min-height:100vh}
+  .header{padding:3rem 1rem 0.75rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--bg);z-index:10;border-bottom:0.5px solid var(--border)}
+  .logo{font-size:20px;font-weight:600;letter-spacing:-0.5px}
+  .logo span{color:var(--teal)}
+  .notion-badge{font-size:11px;background:rgba(29,158,117,0.15);color:var(--teal);padding:4px 10px;border-radius:20px;display:flex;align-items:center;gap:4px;border:0.5px solid rgba(29,158,117,0.3)}
+  .day-tabs{display:flex;gap:6px;padding:0.75rem 1rem;overflow-x:auto;scrollbar-width:none;border-bottom:0.5px solid var(--border)}
+  .day-tabs::-webkit-scrollbar{display:none}
+  .day-tab{flex:0 0 auto;padding:6px 14px;border-radius:20px;border:0.5px solid var(--border);font-size:12px;cursor:pointer;background:var(--surface1);color:var(--text-sec);transition:all 0.15s;text-align:center;line-height:1.4}
+  .day-tab.active{background:var(--teal);color:#fff;border-color:var(--teal)}
+  .day-tab .day-name{display:block;font-size:10px;opacity:0.7}
+  .section{padding:0 1rem;margin-top:1.25rem}
+  .section-label{font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;font-weight:500}
+  .progress-wrap{padding:0 1rem;margin-top:0.75rem}
+  .progress-bar{height:3px;background:var(--surface2);border-radius:2px;overflow:hidden}
+  .progress-fill{height:100%;background:var(--teal);border-radius:2px;transition:width 0.4s ease}
+  .progress-label{font-size:11px;color:var(--text-muted);margin-top:4px;text-align:right}
+  .task-card{background:var(--surface1);border:0.5px solid var(--border);border-radius:14px;padding:13px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;position:relative;overflow:hidden;transition:border-color 0.15s}
+  .task-card:active{border-color:var(--border-strong)}
+  .task-card.done{opacity:0.45}
+  .task-card.done .task-title{text-decoration:line-through;color:var(--text-muted)}
+  .accent-bar{position:absolute;left:0;top:0;bottom:0;width:3px}
+  .task-check{width:24px;height:24px;border-radius:50%;border:1.5px solid var(--border-strong);display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;transition:all 0.2s}
+  .task-check.checked{background:var(--teal);border-color:var(--teal)}
+  .task-check i{color:#fff;font-size:13px}
+  .task-info{flex:1;min-width:0}
+  .task-title{font-size:14px;color:var(--text);font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .task-time{font-size:12px;color:var(--text-muted);margin-top:2px}
+  .task-del{background:none;border:none;cursor:pointer;color:var(--text-muted);padding:6px;border-radius:8px;font-size:16px;flex-shrink:0}
+  .task-del:active{color:var(--coral)}
+  .reminder-card{border-radius:14px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px}
+  .reminder-card.teal{background:rgba(29,158,117,0.1);border:0.5px solid rgba(29,158,117,0.25)}
+  .reminder-card.purple{background:rgba(127,119,221,0.1);border:0.5px solid rgba(127,119,221,0.25)}
+  .reminder-card i{font-size:20px}
+  .reminder-card.teal i{color:var(--teal)}
+  .reminder-card.purple i{color:var(--purple)}
+  .r-title{font-size:13px;font-weight:500}
+  .reminder-card.teal .r-title{color:#5DCAA5}
+  .reminder-card.purple .r-title{color:#AFA9EC}
+  .r-sub{font-size:12px;color:var(--text-muted);margin-top:2px}
+  .empty{text-align:center;padding:2.5rem 1rem;color:var(--text-muted);font-size:14px;line-height:1.6}
+  .empty i{font-size:40px;display:block;margin-bottom:10px;opacity:0.25}
+  .carry-banner{margin-top:8px;padding:12px 14px;background:rgba(216,90,48,0.1);border:0.5px solid rgba(216,90,48,0.3);border-radius:14px;font-size:13px;color:#F0997B;cursor:pointer}
+  .notif-banner{background:rgba(186,117,23,0.1);border:0.5px solid rgba(186,117,23,0.3);border-radius:14px;margin:0.75rem 1rem;padding:12px 14px;display:flex;align-items:center;gap:10px}
+  .notif-banner i{color:var(--amber);font-size:18px;flex-shrink:0}
+  .notif-text{flex:1;font-size:12px;color:#FAC775}
+  .notif-text strong{display:block;font-size:13px;color:#FAEEDA;margin-bottom:2px}
+  .btn-enable{padding:6px 14px;border:none;border-radius:8px;background:var(--amber);color:#fff;font-size:12px;cursor:pointer;font-weight:500;white-space:nowrap}
+  .fab{position:fixed;bottom:80px;right:20px;width:56px;height:56px;border-radius:50%;background:var(--teal);color:#fff;border:none;font-size:26px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(29,158,117,0.4);z-index:100}
+  .fab:active{transform:scale(0.94)}
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:200;display:flex;align-items:flex-end;justify-content:center}
+  .modal{background:var(--surface2);border-radius:24px 24px 0 0;padding:1.5rem;width:100%;max-width:430px;animation:slideUp 0.25s ease}
+  @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+  .modal-title{font-size:17px;font-weight:600;margin-bottom:1.25rem}
+  .modal label{font-size:12px;color:var(--text-muted);display:block;margin-bottom:5px;margin-top:12px;text-transform:uppercase;letter-spacing:0.05em}
+  .modal input,.modal select,.modal textarea{width:100%;padding:10px 14px;border:0.5px solid var(--border-strong);border-radius:var(--radius);font-size:15px;background:var(--surface1);color:var(--text);font-family:inherit;outline:none}
+  .modal input:focus,.modal select,.modal textarea:focus{border-color:var(--teal)}
+  .modal textarea{resize:none;height:80px}
+  .modal-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .btn-row{display:flex;gap:10px;margin-top:1.5rem}
+  .btn-cancel{flex:1;padding:12px;border:0.5px solid var(--border-strong);border-radius:var(--radius);background:var(--surface1);color:var(--text-sec);cursor:pointer;font-size:15px}
+  .btn-save{flex:1;padding:12px;border:none;border-radius:var(--radius);background:var(--teal);color:#fff;cursor:pointer;font-size:15px;font-weight:600}
+  .tab-bar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:var(--surface1);border-top:0.5px solid var(--border);display:flex;z-index:50;padding-bottom:env(safe-area-inset-bottom)}
+  .tab-item{flex:1;display:flex;flex-direction:column;align-items:center;padding:10px 0 12px;cursor:pointer;color:var(--text-muted);font-size:10px;gap:3px;transition:color 0.15s;font-weight:500;letter-spacing:0.02em}
+  .tab-item.active{color:var(--teal)}
+  .tab-item i{font-size:22px}
+  .notes-area{padding:0 1rem;margin-top:1rem}
+  .note-input{width:100%;padding:14px;border:0.5px solid var(--border);border-radius:14px;font-size:15px;background:var(--surface1);color:var(--text);font-family:inherit;resize:none;height:110px;margin-bottom:8px;outline:none}
+  .note-input:focus{border-color:var(--teal)}
+  .sync-status{font-size:12px;color:var(--teal);text-align:center;min-height:18px;margin-bottom:8px}
+  .sync-error{color:var(--coral)!important}
+  .note-save-btn{width:100%;padding:13px;border:none;border-radius:var(--radius);background:var(--teal);color:#fff;cursor:pointer;font-size:15px;font-weight:600;margin-bottom:1.25rem;display:flex;align-items:center;justify-content:center;gap:8px}
+  .note-save-btn:disabled{opacity:0.6}
+  .note-card{background:var(--surface1);border:0.5px solid var(--border);border-radius:14px;padding:14px;margin-bottom:8px}
+  .note-meta{font-size:11px;color:var(--text-muted);margin-bottom:6px;display:flex;align-items:center;gap:6px}
+  .notion-dot{width:7px;height:7px;border-radius:50%;background:var(--teal);flex-shrink:0}
+  .note-body{font-size:14px;color:var(--text);line-height:1.6}
+  select option{background:var(--surface2)}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+
+  <div class="header">
+    <div class="logo">My <span>Routine</span></div>
+    <div class="notion-badge"><i class="ti ti-check" style="font-size:12px"></i>Notion sync</div>
+  </div>
+
+  <div id="notif-banner" class="notif-banner" style="display:none">
+    <i class="ti ti-bell"></i>
+    <div class="notif-text"><strong>Enable notifications</strong>Reminders for blocks, water and breaks.</div>
+    <button class="btn-enable" onclick="requestNotif()">Enable</button>
+  </div>
+
+  <div class="day-tabs" id="day-tabs"></div>
+
+  <div id="main-view">
+    <div class="progress-wrap">
+      <div class="progress-bar"><div class="progress-fill" id="prog-fill" style="width:0%"></div></div>
+      <div class="progress-label" id="prog-label">0 of 0 blocks complete</div>
+    </div>
+
+    <div class="section">
+      <div class="section-label">Today's blocks</div>
+      <div id="task-list"></div>
+    </div>
+
+    <div class="section" style="margin-top:1.5rem">
+      <div class="section-label">Active reminders</div>
+      <div class="reminder-card teal">
+        <i class="ti ti-heart-rate-monitor"></i>
+        <div><div class="r-title">Active break every 90 min</div><div class="r-sub">Stretch, walk, breathe deeply</div></div>
+      </div>
+      <div class="reminder-card purple">
+        <i class="ti ti-droplet"></i>
+        <div><div class="r-title">Water reminder every 45 min</div><div class="r-sub">Stay hydrated throughout the day</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="notes-view" style="display:none">
+    <div class="notes-area">
+      <div class="section-label" style="margin-top:0.25rem">New note</div>
+      <textarea class="note-input" id="note-input" placeholder="Capture your idea, insight or thought..."></textarea>
+      <div class="sync-status" id="sync-status"></div>
+      <button class="note-save-btn" id="note-save-btn" onclick="saveNote()">
+        <i class="ti ti-brand-notion"></i> Save to Notion
+      </button>
+      <div class="section-label">Recent notes</div>
+      <div id="notes-list"></div>
+    </div>
+  </div>
+
+</div>
+
+<button class="fab" onclick="openModal()" id="fab-btn" aria-label="Add block">
+  <i class="ti ti-plus"></i>
+</button>
+
+<div class="tab-bar">
+  <div class="tab-item active" onclick="switchTab('tasks',this)">
+    <i class="ti ti-calendar-week"></i>Tasks
+  </div>
+  <div class="tab-item" onclick="switchTab('notes',this)">
+    <i class="ti ti-notes"></i>Notes
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal" style="display:none" onclick="closeModalOutside(event)">
+  <div class="modal">
+    <div class="modal-title">New block</div>
+    <label>Task name</label>
+    <input type="text" id="inp-name" placeholder="e.g. Read 30 pages">
+    <label>Day</label>
+    <select id="inp-day"></select>
+    <div class="modal-row">
+      <div><label>Start</label><input type="time" id="inp-start" value="07:00"></div>
+      <div><label>End</label><input type="time" id="inp-end" value="07:30"></div>
+    </div>
+    <label>Category</label>
+    <select id="inp-cat">
+      <option value="work">Work</option>
+      <option value="study">Study</option>
+      <option value="health">Health / Exercise</option>
+      <option value="personal">Personal</option>
+      <option value="other">Other</option>
+    </select>
+    <div class="btn-row">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-save" onclick="saveTask()">Save block</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const FULL=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const COLORS={work:'#1D9E75',study:'#7F77DD',health:'#D85A30',personal:'#BA7517',other:'#888780'};
+const NOTION_DS='3b20b844-3f41-8068-bac1-000bb4b4352c';
+let tasks=JSON.parse(localStorage.getItem('mr_tasks')||'[]');
+let notes=JSON.parse(localStorage.getItem('mr_notes')||'[]');
+let activeDay=new Date().getDay();
+let notifGranted=false;
+let waterTimer,breakTimer;
+
+function save(){localStorage.setItem('mr_tasks',JSON.stringify(tasks))}
+function saveN(){localStorage.setItem('mr_notes',JSON.stringify(notes))}
+
+function init(){
+  renderTabs();renderTasks();populateDaySelect();
+  if(typeof Notification!=='undefined'&&Notification.permission==='granted'){
+    notifGranted=true;startReminders();
+  } else {
+    document.getElementById('notif-banner').style.display='flex';
+  }
+  if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+
+function renderTabs(){
+  const now=new Date().getDay();
+  const c=document.getElementById('day-tabs');c.innerHTML='';
+  for(let i=0;i<7;i++){
+    const b=document.createElement('div');
+    b.className='day-tab'+(i===activeDay?' active':'');
+    b.innerHTML=`<span class="day-name">${DAYS[i]}</span>${i===now?'Today':DAYS[i]}`;
+    b.onclick=()=>{activeDay=i;renderTabs();renderTasks()};
+    c.appendChild(b);
+  }
+}
+
+function renderTasks(){
+  const list=document.getElementById('task-list');
+  const now=new Date().getDay();
+  const dayTasks=tasks.filter(t=>t.day===activeDay).sort((a,b)=>a.start.localeCompare(b.start));
+  const pending=tasks.filter(t=>t.day!==activeDay&&!t.done&&t.day<(activeDay||7));
+  const done=dayTasks.filter(t=>t.done).length;
+  const total=dayTasks.length;
+  document.getElementById('prog-fill').style.width=total?Math.round(done/total*100)+'%':'0%';
+  document.getElementById('prog-label').textContent=`${done} of ${total} blocks complete`;
+  if(!dayTasks.length){
+    list.innerHTML=`<div class="empty"><i class="ti ti-calendar-off"></i>No blocks for this day.<br>Tap + to add your first block.</div>`;
+  } else {
+    list.innerHTML='';
+    dayTasks.forEach(t=>{
+      const d=document.createElement('div');
+      d.className='task-card'+(t.done?' done':'');
+      const color=COLORS[t.cat]||COLORS.other;
+      d.innerHTML=`
+        <div class="accent-bar" style="background:${color}"></div>
+        <div class="task-check${t.done?' checked':''}" onclick="toggle('${t.id}')">
+          ${t.done?'<i class="ti ti-check"></i>':''}
+        </div>
+        <div class="task-info">
+          <div class="task-title">${t.name}</div>
+          <div class="task-time">${fmt(t.start)} – ${fmt(t.end)} · ${cap(t.cat)}</div>
+        </div>
+        <button class="task-del" onclick="del('${t.id}')" aria-label="Delete">
+          <i class="ti ti-trash"></i>
+        </button>`;
+      list.appendChild(d);
+    });
+  }
+  if(pending.length&&activeDay===now){
+    const b=document.createElement('div');
+    b.className='carry-banner';
+    b.innerHTML=`<i class="ti ti-arrow-back-up" style="margin-right:6px"></i><strong>${pending.length} pending task${pending.length>1?'s':''} from previous days</strong> — tap to carry over`;
+    b.onclick=()=>{pending.forEach(t=>{t.day=activeDay;t.done=false});save();renderTasks()};
+    list.appendChild(b);
+  }
+}
+
+function fmt(t){if(!t)return'';const[h,m]=t.split(':');const hr=parseInt(h);return`${hr>12?hr-12:hr||12}:${m} ${hr>=12?'PM':'AM'}`}
+function cap(s){return s?s[0].toUpperCase()+s.slice(1):s}
+function toggle(id){const t=tasks.find(x=>x.id===id);if(t){t.done=!t.done;save();renderTasks()}}
+function del(id){if(confirm('Delete this block?')){tasks=tasks.filter(x=>x.id!==id);save();renderTasks()}}
+function openModal(){populateDaySelect();document.getElementById('modal').style.display='flex'}
+function closeModal(){document.getElementById('modal').style.display='none'}
+function closeModalOutside(e){if(e.target===document.getElementById('modal'))closeModal()}
+
+function populateDaySelect(){
+  const s=document.getElementById('inp-day');s.innerHTML='';
+  FULL.forEach((d,i)=>{const o=document.createElement('option');o.value=i;o.textContent=d;if(i===activeDay)o.selected=true;s.appendChild(o)});
+}
+
+function saveTask(){
+  const name=document.getElementById('inp-name').value.trim();
+  if(!name){document.getElementById('inp-name').focus();return}
+  const t={id:Date.now().toString(),name,day:parseInt(document.getElementById('inp-day').value),start:document.getElementById('inp-start').value,end:document.getElementById('inp-end').value,cat:document.getElementById('inp-cat').value,done:false};
+  tasks.push(t);save();scheduleNotif(t);closeModal();
+  document.getElementById('inp-name').value='';renderTasks();
+}
+
+function switchTab(tab,el){
+  document.querySelectorAll('.tab-item').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('main-view').style.display=tab==='tasks'?'block':'none';
+  document.getElementById('notes-view').style.display=tab==='notes'?'block':'none';
+  document.getElementById('fab-btn').style.display=tab==='tasks'?'flex':'none';
+  if(tab==='notes')renderNotes();
+}
+
+async function saveNote(){
+  const text=document.getElementById('note-input').value.trim();
+  if(!text)return;
+  const btn=document.getElementById('note-save-btn');
+  const status=document.getElementById('sync-status');
+  btn.disabled=true;btn.innerHTML='<i class="ti ti-loader"></i> Saving...';status.textContent='';
+  const dateStr=new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+  const note={id:Date.now().toString(),text,date:dateStr,synced:false};
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-6',max_tokens:500,
+        mcp_servers:[{type:'url',url:'https://mcp.notion.com/mcp',name:'notion-mcp'}],
+        messages:[{role:'user',content:`Create a page in Notion data source collection://${NOTION_DS}. Name: "📝 ${text.substring(0,60)}${text.length>60?'...':''} (${dateStr})". Content: ${text}. Reply "done".`}]
+      })
+    });
+    if(res.ok){note.synced=true;status.textContent='✓ Saved to Notion';}
+    else{status.textContent='Saved locally';status.className='sync-status sync-error'}
+  }catch{status.textContent='Saved locally';status.className='sync-status sync-error'}
+  notes.unshift(note);saveN();
+  document.getElementById('note-input').value='';
+  btn.disabled=false;btn.innerHTML='<i class="ti ti-brand-notion"></i> Save to Notion';
+  renderNotes();setTimeout(()=>{status.textContent='';status.className='sync-status'},4000);
+}
+
+function renderNotes(){
+  const list=document.getElementById('notes-list');
+  if(!notes.length){list.innerHTML='<div class="empty"><i class="ti ti-notes"></i>No notes yet.</div>';return}
+  list.innerHTML=notes.slice(0,30).map(n=>`
+    <div class="note-card">
+      <div class="note-meta">${n.synced?'<div class="notion-dot"></div>':''}<span>${n.date}${n.synced?' · Notion':' · Local'}</span></div>
+      <div class="note-body">${n.text}</div>
+    </div>`).join('');
+}
+
+function requestNotif(){
+  if(typeof Notification==='undefined')return;
+  Notification.requestPermission().then(p=>{
+    if(p==='granted'){
+      notifGranted=true;
+      document.getElementById('notif-banner').style.display='none';
+      startReminders();tasks.forEach(scheduleNotif);
+      new Notification('My Routine',{body:'Notifications enabled ✅'});
+    }
+  });
+}
+
+function notify(title,body){
+  if(notifGranted&&Notification.permission==='granted')new Notification(title,{body});
+}
+
+function scheduleNotif(t){
+  if(!notifGranted)return;
+  const now=new Date();if(t.day!==now.getDay())return;
+  const[sh,sm]=t.start.split(':').map(Number);
+  const[eh,em]=t.end.split(':').map(Number);
+  const sMs=new Date(now.getFullYear(),now.getMonth(),now.getDate(),sh,sm)-now;
+  const eMs=new Date(now.getFullYear(),now.getMonth(),now.getDate(),eh,em)-now;
+  if(sMs>0)setTimeout(()=>notify('⏰ Time to start!',`${t.name} starts now`),sMs);
+  if(eMs>0)setTimeout(()=>notify('✅ Block ending',`Finish: ${t.name}`),eMs);
+}
+
+function startReminders(){
+  clearInterval(waterTimer);clearInterval(breakTimer);
+  waterTimer=setInterval(()=>notify('💧 Drink water!','Stay hydrated — quick water break.'),45*60*1000);
+  breakTimer=setInterval(()=>notify('🧘 Active break','Stand up and stretch for 5 minutes.'),90*60*1000);
+}
+
+init();
+</script>
+</body>
+</html>
